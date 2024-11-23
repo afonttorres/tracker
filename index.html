@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <h1 id="month"></h1>
+    <select id="month-selector"></select>
+    <div id="container" class="custom-scrollbar" />
+    <script>
+      class StrengthTraining {
+        title = "Leg day";
+        duration = undefined;
+        kcal = 0;
+        status = false;
+        style = {
+          icon: "🦍",
+        };
+        constructor(title, duration, kcal) {
+          this.title = title ?? this.title;
+          this.duration = `${duration ?? this.duration} min`;
+          this.kcal = `${kcal ?? this.kcal} kcal`;
+        }
+      }
+
+      class CardioTraining {
+        title = "Solo run";
+        duration = undefined;
+        distance = 0;
+        kcal = 0;
+        status = false;
+
+        style = {
+          icon: "&#127939",
+        };
+        constructor(title, distance, duration, kcal) {
+          this.title = title ?? this.title;
+          this.distance = `${distance ?? this.distance} km`;
+          this.duration = `${duration ?? this.duration} min`;
+          this.kcal = `${kcal ?? this.kcal} kcal`;
+        }
+
+        toggleStatus() {
+          this.status = !this.status;
+        }
+      }
+
+      const getColor = (color) => {
+        let colors = { true: "green", false: "indianred" };
+        return colors?.[color] ?? "indianred";
+      };
+
+      const workoutUI = ({
+        title,
+        duration,
+        distance,
+        kcal,
+        status,
+        style: { icon },
+      }) => {
+        return `
+        <div class="workout row">
+            <section class="col" width="10%">
+                <span class="status" style="backgroundColor:${getColor(
+                  status
+                )};">${icon}</span>
+            </section>
+            <section class="col width="90%"">
+                <span class="workout__title">${title}</span>
+                <div class="row">
+                    <span class="workout__caption">${
+                      distance ?? duration
+                    }</span>
+                    <span class="workout__caption">${kcal}</span>
+                <div/>
+            </section>
+        </div>
+        `;
+      };
+
+      const displayDayWorkouts = (day) => {
+        let id = day?.id;
+        let dayUI = document.getElementById(id);
+        let workoutsContainer = dayUI.getElementsByClassName(
+          "workouts__container"
+        )[0];
+        console.log(dayUI);
+        console.log(workoutsContainer);
+        workoutsContainer.innerHTML = "";
+        Object.values({ ...(day?.workout ?? {}) }).forEach((workout) => {
+          let _workoutUI = workoutUI(workout);
+          workoutsContainer.innerHTML += _workoutUI;
+        });
+      };
+
+      class Day {
+        id = undefined;
+        label = "";
+        date = undefined;
+        month = undefined;
+        year = undefined;
+
+        workout_done = false;
+        workout = {};
+
+        constructor() {}
+        setDate(date) {
+          this.date = date;
+        }
+        setMonth(month) {
+          this.month = month;
+        }
+        setYear(year) {
+          this.year = year;
+        }
+
+        setLabel(label) {
+          this.label = label;
+        }
+        setId(id) {
+          this.id = id;
+        }
+
+        addWorkout(workout) {
+          let { title } = { ...workout };
+          this.workout[title] = workout;
+
+          console.log(workout);
+
+          displayDayWorkouts(this);
+        }
+      }
+
+      const container = document.querySelector("#container");
+
+      window.addEventListener("DOMContentLoaded", () => {
+        const WEEK = [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
+
+        const MONTHS = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+
+        const loadSelectOptions = () => {
+          const select = document.getElementById("month-selector");
+          MONTHS.map((month) => ({
+            value: month.toLowerCase(),
+            text: month,
+          })).forEach(({ value, text }) => {
+            let op = document.createElement("option");
+            op.value = value;
+            op.text = text;
+            select.appendChild(op);
+          });
+        };
+
+        let setMonth = (month) => {
+          let monthCont = document.getElementById("month");
+          month = [...month].reduce((_m, m) => (_m += `${m} `), "");
+          monthCont.innerText = month;
+        };
+
+        let WEEKS_IN_YEAR = 53;
+        let CURRENT_YEAR = new Date().getFullYear();
+
+        let firstDay = new Date(CURRENT_YEAR, 0, 1);
+        let date = firstDay.getDate();
+        let dayOfWeek = firstDay.getDay();
+        let month = firstDay.getMonth();
+
+        let getDay = (day) => WEEK[day];
+        let getMonth = (month) => MONTHS[month];
+
+        let currentDate = date;
+        let currentMonth = month;
+        console.log(currentMonth);
+        setMonth(getMonth(currentMonth));
+
+        let yearWeeks = [...Array(WEEKS_IN_YEAR).keys()].map((yw, idxWeek) => {
+          return [...WEEK].map((dayLabel, idxDay) => {
+            //year, month (index), date
+            let newDate = new Date(CURRENT_YEAR, month, currentDate);
+            currentDate += 1;
+
+            let day = new Day();
+            day.setId(`w-${idxWeek + 1}-d-${idxDay + 1}`);
+            day.setLabel(dayLabel);
+            day.setDate(newDate.getDate());
+            day.setMonth(getMonth(newDate.getMonth()));
+            day.setYear(newDate.getFullYear());
+
+            console.log(day);
+            return day;
+          });
+        });
+
+        yearWeeks.forEach((yw) => {
+          let weekUI = document.createElement("div");
+          weekUI.setAttribute("class", "week");
+          yw.forEach((day) => {
+            let dayUI = document.createElement("article");
+            dayUI.setAttribute("class", "day");
+            dayUI.setAttribute("data-month", day?.month.toLowerCase());
+            dayUI.id = day?.id;
+
+            let label = document.createElement("span");
+            label.setAttribute("class", "day__label");
+            label.innerText = `${day?.label}` ?? "";
+
+            let date = document.createElement("span");
+            date.setAttribute("class", "date__caption");
+            date.innerText = `${day?.date} ${day?.month}`;
+
+            let workouts = document.createElement("div");
+            workouts.setAttribute("class", "workouts__container");
+
+            let aside = document.createElement("aside");
+            let button = document.createElement("button");
+            button.innerText = "+";
+            button.setAttribute("class", "day__button");
+
+            let cardio = new CardioTraining("Run", 5, 23, 330);
+            button.onclick = () => day.addWorkout(cardio);
+
+            let strength = new StrengthTraining("Leg day", 120, 420);
+            button.ondblclick = () => day.addWorkout(strength);
+
+            aside.append(button);
+            dayUI.append(aside);
+
+            dayUI.append(label);
+            dayUI.append(date);
+            dayUI.append(workouts);
+
+            if (day?.year != CURRENT_YEAR) {
+              dayUI.setAttribute("class", "hidden");
+            }
+            weekUI.append(dayUI);
+          });
+          container.append(weekUI);
+        });
+
+        loadSelectOptions();
+
+        let selectMonth = document.getElementById("month-selector");
+        selectMonth.addEventListener("change", () => {
+          const selected = selectMonth.value;
+
+          let firstDay = undefined;
+          document.querySelectorAll(".day").forEach((day) => {
+            let dayMonth = day.dataset.month;
+            if (dayMonth == selected) {
+              firstDay = firstDay ?? day;
+              day.classList.remove("hidden");
+              day.classList.add("visible");
+              return;
+            }
+            day.classList.remove("visible");
+            day.classList.add("hidden");
+
+            console.log(dayMonth);
+            if (!!dayMonth == selected) {
+              console.log(selected);
+              console.log(dayMonth == selected);
+            }
+          });
+          firstDay.scrollIntoView({ behavior: 'smooth' });
+        });
+      });
+    </script>
+    <style>
+      * {
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+
+        user-select: none;
+      }
+
+      #month {
+        margin-left: 5%;
+        color: rgb(66, 66, 179);
+        text-shadow: -2px -2px 0 #fff, 2px 2px 0 #fff, 0px 2px 0 #fff,
+          0px -2px 0 #fff, 1px 1px 1px rgba(0, 0, 0, 0.2),
+          -1px -1px 1px rgba(0, 0, 0, 0.2), 1px -1px 1px rgba(0, 0, 0, 0.2),
+          -1px 1px 1px rgba(0, 0, 0, 0.2);
+      }
+
+      select {
+        position: absolute;
+        top: 2%;
+        right: 2%;
+        border: 2px solid lavender; /* Borde lavanda */
+        padding: 5px;
+      }
+
+      option:checked {
+        background-color: #e6e6fa; /* Fondo lavanda para la opción seleccionada */
+        color: #333; /* Color del texto para contraste */
+      }
+
+      .custom-scrollbar {
+        &::-webkit-scrollbar {
+          width: 10px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: #888;
+          /*background: teal;*/
+          border-radius: 10px;
+        }
+
+        &::-webkit-scrollbar-thumb:hover {
+          background: #555;
+          /*background: #004d40;*/
+        }
+      }
+
+      .hidden {
+        visibility: hidden;
+      }
+
+      .visible {
+        visibility: visible;
+      }
+
+      .row {
+        display: flex;
+        flex-direction: row;
+      }
+
+      .col {
+        display: flex;
+        flex-direction: column;
+      }
+
+      #container {
+        width: 95vw;
+        height: 85vh;
+        top: 50%;
+        left: 50%;
+        margin: 0 auto;
+        margin-top: 3.5vh;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        overflow-y: scroll;
+        overflow-x: hidden;
+        padding: 1%;
+        padding-right: 2%;
+        background-color: #f1f1f1ba;
+        border-radius: 0.25rem;
+      }
+      .week {
+        display: flex;
+        flex-direction: row;
+        justify-content: baseline;
+        column-gap: 6px;
+        padding-block: 6px;
+        padding-inline: 2px;
+        width: 100%;
+        height: 150px;
+        position: relative;
+      }
+      .day {
+        width: 14.3%;
+        border-radius: 0.75rem;
+        border: 2px solid lavender;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        background-color: white;
+      }
+      .day > .day__label {
+        font-size: small;
+        color: teal;
+        padding: 7px 5px 2px 5px;
+        border-bottom: 1px solid lavender;
+        width: fit-content;
+        margin-left: 10%;
+      }
+
+      .day > .date__caption {
+        font-size: 8px;
+        color: #555;
+        padding: 7px 5px 2px 5px;
+        width: 25px;
+        line-height: 11px;
+        text-align: center;
+        position: absolute;
+        right: 7%;
+      }
+
+      .day > aside {
+        position: absolute;
+        bottom: -3px;
+        right: -3px;
+        width: 53px;
+        height: 53px;
+        z-index: 10;
+        background: #f1f1f1ba;
+        border-radius: 1rem 0 0 0;
+
+        > button {
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          height: 45px;
+          width: 45px;
+          background-color: lavender;
+          border: 2px solid lavender;
+          border-radius: 50%;
+          position: absolute;
+          color: white;
+          cursor: pointer;
+        }
+      }
+      .day::after {
+        content: "";
+        position: absolute;
+        background-color: #f1f1f1ba;
+        border-radius: 1.8rem 0 0 0;
+        border-left: 2px solid lavender;
+        border-top: 2px solid lavender;
+        bottom: -3px;
+        right: -3px;
+        width: 55px;
+        height: 55px;
+      }
+
+      .workouts__container {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        height: 100px;
+        overflow-y: hidden;
+        overflow-x: hidden;
+        padding-block: 5%;
+      }
+
+      .workout {
+        /*line-height: 20px;*/
+        width: 90%;
+        margin-left: 10%;
+        column-gap: 2px;
+      }
+
+      .status {
+      }
+
+      .workout__title {
+        font-size: 12px;
+        color: teal;
+        text-align: left;
+      }
+
+      .workout__caption {
+        font-size: 10px;
+        color: #888;
+        text-align: center;
+      }
+    </style>
+  </body>
+</html>
